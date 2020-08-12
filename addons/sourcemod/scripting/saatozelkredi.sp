@@ -2,8 +2,8 @@
 #include <store>
 #pragma tabsize 0
 
-Handle gecekredi_miktar, gecekredi_sure;
-int aktif = 0, saniye;
+ConVar gecekredi_miktar, gecekredi_sure;
+int aktif = 0;
 
 public void OnPluginStart()
 {
@@ -20,55 +20,39 @@ public Action kontrolcu(Handle timer)
 	char buffer[64];
     FormatTime(buffer, sizeof(buffer), "%H", GetTime()); 
     int saat = StringToInt(buffer);
-    if(saat >= 0 && saat < 4)
+    if((saat >= 0 && saat < 4) || (saat >= 9 && saat < 12))
     {
-    	aktif = 1;
-    	saniye = GetConVarInt(gecekredi_sure);
-    	CreateTimer(1.0, sayac, 0, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    	if(aktif == 0)
+    	{
+    		aktif = 1;
+    		CreateTimer(gecekredi_sure.FloatValue, sayac, _, TIMER_REPEAT);
+    	}	
    	}
-   	else if (saat >= 9 && saat < 12)
+   	else
    	{
-   		aktif = 1;
-   		saniye = GetConVarInt(gecekredi_sure);
-   		CreateTimer(1.0, sayac, 1, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-   	}
-   	else if(aktif == 1)
-   	{
-   		aktif = 0;
+		aktif = 0;
    	}
    	return Plugin_Continue;
 }
 
-public Action sayac(Handle timer, any durum)
+public Action sayac(Handle timer)
 {
 	if(aktif == 1)
 	{
-		saniye--;
-		if(saniye == 0)
+		PrintToChatAll(" \x07[SM] \x01Saate özel kredi etkinliği devam etmektedir.");
+		for(int i = 1; i < MAXPLAYERS ; i++)
 		{
-			saniye = GetConVarInt(gecekredi_sure);
-			if(durum == 0)
+			if(IsClientInGame(i) && !IsFakeClient(i))
 			{
-				PrintToChatAll(" \x07[SM] \x01Geceye özel kredi etkinliği devam etmektedir.");
-			}
-			else
-			{
-				PrintToChatAll(" \x07[SM] \x01Sabaha özel kredi etkinliği devam etmektedir.");
-			}
-			for(int i = 1; i < MAXPLAYERS ; i++)
-			{
-				if(IsClientInGame(i) && !IsFakeClient(i))
-				{
-					PrintToChat(i, " \x07[SM] \x01Bu saatte aktif olduğundan \x04%d \x01kredi kazandın.", GetConVarInt(gecekredi_miktar));
-					int yenikredi = Store_GetClientCredits(i) + GetConVarInt(gecekredi_miktar);
-					Store_SetClientCredits(i, yenikredi);
-				}
+				PrintToChat(i, " \x07[SM] \x01Bu saatte aktif olduğundan \x04%d \x01kredi kazandın.", GetConVarInt(gecekredi_miktar));
+				int yenikredi = Store_GetClientCredits(i) + GetConVarInt(gecekredi_miktar);
+				Store_SetClientCredits(i, yenikredi);
 			}
 		}
+		return Plugin_Continue;
 	}
 	else
 	{
 		return Plugin_Stop;
 	}
-	return Plugin_Continue;
 }
